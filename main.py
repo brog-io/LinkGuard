@@ -56,6 +56,7 @@ class LinkCleaner(commands.Bot):
             "dclid",
             "twclid",
             "igshid",
+            "igsh",
         ]
 
         # Regex pattern to find URLs in text
