@@ -9,7 +9,11 @@ import logging
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()],
+)
 
 
 class LinkCleaner(commands.Bot):
@@ -67,13 +71,18 @@ class LinkCleaner(commands.Bot):
         try:
             result = urlparse(url)
             return all([result.scheme, result.netloc])
-        except Exception:
+        except ValueError:
             return False
 
     def clean_url(self, url):
-        """Remove tracking parameters from a URL."""
+        """Remove tracking parameters from a URL, but skip Discord media URLs."""
         try:
             parsed_url = urlparse(url)
+
+            # Skip cleaning for Discord media URLs
+            if parsed_url.netloc == "media.discordapp.net":
+                return url
+
             query_params = parse_qs(parsed_url.query)
 
             # Remove tracking parameters
@@ -139,7 +148,9 @@ class LinkCleaner(commands.Bot):
             # Create buttons for each cleaned link
             view = discord.ui.View()
             for link in cleaned_links:
-                button = discord.ui.Button(label="Open Cleaned Link", url=link)
+                button = discord.ui.Button(
+                    label=f"Open {urlparse(link).netloc}", url=link
+                )
                 view.add_item(button)
 
             # Send the response with cleaned links and buttons
@@ -172,7 +183,9 @@ class LinkCleaner(commands.Bot):
                 # Create buttons for each cleaned link
                 view = discord.ui.View()
                 for link in cleaned_links:
-                    button = discord.ui.Button(label="Open Cleaned Link", url=link)
+                    button = discord.ui.Button(
+                        label=f"Open {urlparse(link).netloc}", url=link
+                    )
                     view.add_item(button)
 
                 # Send the reply with cleaned links and buttons
@@ -197,7 +210,11 @@ def main():
     bot = LinkCleaner(intents)
 
     # Run the bot
-    bot.run(os.getenv("DISCORD_BOT_TOKEN"))
+    token = os.getenv("DISCORD_BOT_TOKEN")
+    if not token:
+        logging.error("DISCORD_BOT_TOKEN not found in environment variables.")
+        return
+    bot.run(token)
 
 
 if __name__ == "__main__":
